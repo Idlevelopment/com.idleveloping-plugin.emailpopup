@@ -1,0 +1,117 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdk 34
+    defaultConfig {
+        namespace "plugin.emailpopup" // This is the package name of the plugin
+
+        minSdkVersion 21
+        versionCode 1
+        versionName "1.0"
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+}
+
+dependencies {
+    implementation ':Corona@aar'
+    implementation 'androidx.core:core:1.16.0'
+}
+
+def buildDirectory = getLayout().getBuildDirectory().asFile.get()
+tasks.register("extractPluginJar") {
+    group "Solar2Dev"
+    dependsOn assembleRelease
+    doLast {
+        copy {
+            from {
+                zipTree("$buildDirectory/outputs/aar/${project.name}-release.aar").matching {
+                    include 'classes.jar'
+                }.singleFile
+            }
+            into "$buildDirectory/outputs/"
+            String packageName = android.namespace
+            rename "classes.jar", "${packageName}.jar"
+        }
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Plugin packaging.
+//
+// Source of truth for distribution is `plugins/<solar2d-build>/<platform>/`,
+// which matches the layout consumed by https://github.com/solar2d/directory-plugin-action.
+// Pre-built AAR for Android lives there (committed to git); Lua-only platforms
+// ship just a passthrough Lua module + metadata.lua.
+//
+// Tasks below:
+//   - copyAarToDirectoryPlugin: drops the freshly built AAR into the directory
+//     plugin layout under `plugins/<build>/android/`. Run after code changes
+//     before committing + pushing (CI then publishes via directory-plugin-action).
+//   - deployToLocalSolar2DRepo / deployLuaPluginTo_<platform> / deployAllToLocalSolar2DRepo:
+//     tar each platform dir into `~/Solar2DPlugins/<providerId>/<packageName>/<platform>/data.tgz`
+//     so the Solar2D simulator picks the plugin up locally without going through
+//     the online directory.
+// ----------------------------------------------------------------------------
+def providerId = 'com.idleveloping'
+def packageName = android.namespace
+def solar2dBuild = '2026.3730'
+def directoryPluginRoot = file("$rootDir/../plugins/$solar2dBuild")
+def supportedPlatforms = ["android", "iphone", "iphone-sim", "mac-sim", "tvos", "tvos-sim"]
+
+tasks.register("copyAarToDirectoryPlugin", Copy) {
+    group "Solar2Dev"
+    description "Copies the freshly built AAR into plugins/$solar2dBuild/android/ for directory publishing."
+    dependsOn assembleRelease
+
+    from("$buildDirectory/outputs/aar") {
+        include "${project.name}-release.aar"
+    }
+    into "$directoryPluginRoot/android"
+    rename "${project.name}-release.aar", "plugin.emailpopup.aar"
+}
+
+def rootS2DP = System.env.APP_DATA ?: System.env.HOME
+def localPluginRoot = file("$rootS2DP/Solar2DPlugins/$providerId/$packageName")
+
+def deployTasks = supportedPlatforms.collect { platform ->
+    tasks.register("deployTo_${platform.replace('-', '_')}", Tar) {
+        group "Solar2Dev"
+        description "Packs plugins/$solar2dBuild/$platform/ into data.tgz and deploys to local Solar2DPlugins."
+        if (platform == "android") {
+            dependsOn "copyAarToDirectoryPlugin"
+        }
+
+        compression = Compression.GZIP
+        archiveFileName = "data.tgz"
+        destinationDirectory = file("$localPluginRoot/$platform")
+
+        into("/") {
+            from("$directoryPluginRoot/$platform")
+        }
+    }
+}
+
+tasks.register("deployToLocalSolar2DRepo") {
+    group "Solar2Dev"
+    description "Alias: deploys Android AAR variant to local Solar2DPlugins."
+    dependsOn "deployTo_android"
+}
+
+tasks.register("deployAllToLocalSolar2DRepo") {
+    group "Solar2Dev"
+    description "Deploys every platform variant (Android AAR + Lua passthroughs) to local Solar2DPlugins."
+    dependsOn deployTasks
+    doLast {
+        println("\n\n\n== !!! IMPORTANT !!! ==\nMake sure to delete plugin when done: $localPluginRoot\nThis plugin will override any Solar2D Directory plugin, or plugin from any other source")
+    }
+}
+
+tasks.register("refreshDirectoryPlugin") {
+    group "Solar2Dev"
+    description "Rebuilds AAR + refreshes plugins/$solar2dBuild/android/ contents. Run before committing changes for GitHub release."
+    dependsOn "copyAarToDirectoryPlugin"
+}

@@ -1,0 +1,33 @@
+name: Publish to Solar2D Plugin Directory
+
+# Mirrors the workflow used by every solar2d/* and coronalabs/* plugin repo:
+# on every push to the default branch that touches plugins/, the
+# solar2d/directory-plugin-action composite action tars each
+# plugins/<build>/<platform>/ into <build>-<platform>.tgz, creates a GitHub
+# release with those tarballs as assets, then notifies
+# https://github.com/solar2d/plugins.solar2d.com to refresh the directory entry.
+#
+# Required secrets:
+#   ISSUE_PAT - personal access token with `repo` scope, used to dispatch the
+#               refresh request to plugins.solar2d.com. Optional: if absent,
+#               the release is still published but the directory entry will not
+#               auto-refresh (you'd PR the JSON update manually).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/**'
+      - 'docs/**'
+  repository_dispatch:
+  workflow_dispatch:
+
+jobs:
+  publish-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: solar2d/directory-plugin-action@main
+        with:
+          pat: ${{ secrets.ISSUE_PAT }}

@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# JetBrains
+.idea/
+*.iml
+
+# Java / Gradle
+.java-version
+.gradle/
+build/
+**/build/
+local.properties
+out/
+
+# Logs
+*.log
+hs_err_pid*
+
+# Solar2D simulator artifacts
+output/
+
+# OS / editor
+*.swp
+*~
+.vscode/
