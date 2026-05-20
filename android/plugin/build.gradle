@@ -61,11 +61,32 @@ def packageName = android.namespace
 def solar2dBuild = '2026.3730'
 def directoryPluginRoot = file("$rootDir/../plugins/$solar2dBuild")
 def supportedPlatforms = ["android", "iphone", "iphone-sim", "mac-sim", "tvos", "tvos-sim"]
+def luaPlatforms = ["iphone", "iphone-sim", "tvos", "tvos-sim"]
+def luacPath = project.findProperty('luacPath') ?: "/Applications/Corona-${solar2dBuild.split('\\.')[1]}/Native/Corona/mac/bin/luac"
+
+tasks.register("compileLuaBytecode") {
+    group "Solar2Dev"
+    description "Compiles plugin_emailpopup.lua → plugin.emailpopup.lu for all iOS/tvOS platforms."
+    doLast {
+        def luac = file(luacPath)
+        if (!luac.exists()) {
+            throw new GradleException("luac not found at $luacPath. Install Solar2D $solar2dBuild or set -PluacPath=<path>.")
+        }
+        luaPlatforms.each { platform ->
+            def src = file("$directoryPluginRoot/$platform/plugin_emailpopup.lua")
+            def out = file("$directoryPluginRoot/$platform/plugin.emailpopup.lu")
+            def proc = [luac.absolutePath, '-o', out.absolutePath, src.absolutePath].execute()
+            proc.waitFor()
+            if (proc.exitValue() != 0) throw new GradleException("luac failed for $platform: ${proc.err.text}")
+            println "Compiled $platform/plugin.emailpopup.lu"
+        }
+    }
+}
 
 tasks.register("copyAarToDirectoryPlugin", Copy) {
     group "Solar2Dev"
     description "Copies the freshly built AAR into plugins/$solar2dBuild/android/ for directory publishing."
-    dependsOn assembleRelease
+    dependsOn assembleRelease, "compileLuaBytecode"
 
     from("$buildDirectory/outputs/aar") {
         include "${project.name}-release.aar"
@@ -83,6 +104,8 @@ def deployTasks = supportedPlatforms.collect { platform ->
         description "Packs plugins/$solar2dBuild/$platform/ into data.tgz and deploys to local Solar2DPlugins."
         if (platform == "android") {
             dependsOn "copyAarToDirectoryPlugin"
+        } else if (luaPlatforms.contains(platform)) {
+            dependsOn "compileLuaBytecode"
         }
 
         compression = Compression.GZIP
