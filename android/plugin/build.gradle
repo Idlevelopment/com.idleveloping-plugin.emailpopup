@@ -58,11 +58,13 @@ tasks.register("extractPluginJar") {
 // ----------------------------------------------------------------------------
 def providerId = 'com.idleveloping'
 def packageName = android.namespace
-def solar2dBuild = '2026.3730'
+def solar2dBuild = '2026.3729'
 def directoryPluginRoot = file("$rootDir/../plugins/$solar2dBuild")
 def supportedPlatforms = ["android", "iphone", "iphone-sim", "mac-sim", "tvos", "tvos-sim"]
 def luaPlatforms = ["iphone", "iphone-sim", "tvos", "tvos-sim"]
-def luacPath = project.findProperty('luacPath') ?: "/Applications/Corona-${solar2dBuild.split('\\.')[1]}/Native/Corona/mac/bin/luac"
+// luac ships with the locally installed Solar2D app; its build may be newer
+// than solar2dBuild (the directory folder is the minimum supported build).
+def luacPath = project.findProperty('luacPath') ?: "/Applications/Corona-3730/Native/Corona/mac/bin/luac"
 
 tasks.register("compileLuaBytecode") {
     group "Solar2Dev"

@@ -104,7 +104,7 @@ android/
     src/main/AndroidManifest.xml         -- FileProvider + Android 11+ <queries> declaration
     src/main/res/xml/file_paths.xml      -- FileProvider path coverage for every Solar2D baseDir
     build.gradle                         -- AAR build + deployment tasks
-plugins/2026.3730/                       -- Distribution layout consumed by Solar2D Plugin Directory
+plugins/2026.3729/                       -- Distribution layout consumed by Solar2D Plugin Directory
   android/                               --   AAR + metadata.lua + corona.gradle (FileProvider, <queries>)
   iphone/, iphone-sim/, mac-sim/,        --   plugin_emailpopup.lua passthrough + metadata.lua
   tvos/, tvos-sim/                       --   (Solar2D's built-in native.showPopup("mail", ...) works here)
@@ -152,18 +152,18 @@ After changing Android code:
 
 ```bash
 cd android
-./gradlew :plugin:refreshDirectoryPlugin     # builds AAR + copies into plugins/2026.3730/android/
+./gradlew :plugin:refreshDirectoryPlugin     # builds AAR + copies into plugins/2026.3729/android/
 git add plugins/                              # commit the rebuilt AAR + any lua/metadata changes
 git commit -m "Release notes"
 git push origin main                          # GitHub Action takes over
 ```
 
-After changing Lua-only platform code (`plugins/2026.3730/*/plugin_emailpopup.lua`):
+After changing Lua-only platform code (`plugins/2026.3729/*/plugin_emailpopup.lua`):
 just commit and push — the workflow tars and releases.
 
 ### Supporting additional Solar2D builds
 
-Duplicate `plugins/2026.3730/` to e.g. `plugins/2024.3703/`, rebuild the AAR
+Duplicate `plugins/2026.3729/` to e.g. `plugins/2024.3703/`, rebuild the AAR
 against that Solar2D Native version, and update `solar2dBuild` in
 `android/plugin/build.gradle` if you want the local-deploy tasks to target
 the new build.
