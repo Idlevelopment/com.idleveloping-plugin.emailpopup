@@ -66,14 +66,14 @@ def luacPath = project.findProperty('luacPath') ?: "/Applications/Corona-${solar
 
 tasks.register("compileLuaBytecode") {
     group "Solar2Dev"
-    description "Compiles plugin_emailpopup.lua → plugin.emailpopup.lu for all iOS/tvOS platforms."
+    description "Compiles plugin/emailpopup.lua → plugin.emailpopup.lu for all iOS/tvOS platforms."
     doLast {
         def luac = file(luacPath)
         if (!luac.exists()) {
             throw new GradleException("luac not found at $luacPath. Install Solar2D $solar2dBuild or set -PluacPath=<path>.")
         }
         luaPlatforms.each { platform ->
-            def src = file("$directoryPluginRoot/$platform/plugin_emailpopup.lua")
+            def src = file("$directoryPluginRoot/$platform/plugin/emailpopup.lua")
             def out = file("$directoryPluginRoot/$platform/plugin.emailpopup.lu")
             def proc = [luac.absolutePath, '-o', out.absolutePath, src.absolutePath].execute()
             proc.waitFor()
