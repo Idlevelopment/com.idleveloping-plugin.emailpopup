@@ -62,9 +62,18 @@ def solar2dBuild = '2026.3729'
 def directoryPluginRoot = file("$rootDir/../plugins/$solar2dBuild")
 def supportedPlatforms = ["android", "iphone", "iphone-sim", "mac-sim", "tvos", "tvos-sim"]
 def luaPlatforms = ["iphone", "iphone-sim", "tvos", "tvos-sim"]
-// luac ships with the locally installed Solar2D app; its build may be newer
+// luac ships with the locally installed Solar2D Native; its build may be newer
 // than solar2dBuild (the directory folder is the minimum supported build).
-def luacPath = project.findProperty('luacPath') ?: "/Applications/Corona-3730/Native/Corona/mac/bin/luac"
+// Resolve via the version-independent Native dir instead of hardcoding a build:
+//   - Windows: %CORONA_ROOT%\Corona\win\bin\luac.exe
+//   - macOS:   ~/Library/Application Support/Corona/Native/Corona/mac/bin/luac
+def defaultLuacPath = {
+    if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+        return "${System.env.CORONA_ROOT}/Corona/win/bin/luac.exe"
+    }
+    return "${System.env.HOME}/Library/Application Support/Corona/Native/Corona/mac/bin/luac"
+}()
+def luacPath = project.findProperty('luacPath') ?: defaultLuacPath
 
 tasks.register("compileLuaBytecode") {
     group "Solar2Dev"
